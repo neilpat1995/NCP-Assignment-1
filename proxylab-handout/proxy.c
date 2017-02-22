@@ -13,6 +13,7 @@
 #include "csapp.h"
 
 #define PROGRAM_NAME "proxy"
+#define LOGFILE_NAME "proxy.log"
 
 /*
  * Function prototypes
@@ -25,7 +26,7 @@ void err_exit() {
     exit(2);
 }
 
-void process_request(int cfd) {
+void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
     printf("Now starting process_request\n");
     
     //read request
@@ -39,10 +40,48 @@ void process_request(int cfd) {
     printf("Now printing read request...\n");
     printf("%s\n", reqbuf);
 
+    //Parse URI and IP address from request (second token) and socket address structure
+    char* request_uri;
+    strtok(reqbuf, " ");
+    request_uri = strtok(NULL, " ");
+
+    char* ip_addr = (char*) malloc(INET_ADDRSTRLEN);
+    bzero(ip_addr, INET_ADDRSTRLEN);
+    if ((ip_addr = inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, INET_ADDRSTRLEN)) == NULL) {
+        err_exit();
+    }
+
+    printf("Request URI is: %s\n", request_uri);
+    printf("IP address is: %s\n", ip_addr);
+
+    free(ip_addr);
+
+
+    //Read log entry into buffer
+    //Assumes entries are at most 1000 bytes (characters) long
+    char entry_buf[1000];
+    bzero(entry_buf, sizeof(entry_buf));
+    format_log_entry(entry_buf, &cliaddr, request_uri, 0);
+    printf("Log entry is: %s\n", entry_buf);
+
+    //Write buffer to "proxy.log" file
+    FILE *fp;
+    if ((fp = fopen(LOGFILE_NAME, "a")) == NULL) {
+        err_exit();
+    }
+
+    int res = fprintf(fp, "%s\n", entry_buf);
+
+    printf("Num bytes read: %d\n", res);
+
+    fclose(fp);
+
+    /*
     //Write back to the socket for view in browser
     if (write(cfd, reqbuf, reqlen) < 0) {
         err_exit();
     }
+    */
 
     /*// Format: GET <pathname> HTTP/1.0
     if ( strncmp(reqbuf, "GET", 3) != 0 ) { 
@@ -128,20 +167,24 @@ int main(int argc, char **argv)
         err_exit(argv[0]);
     
     int cfd = 0;
+    struct sockaddr_in clientaddr;
+    int clientaddr_size = sizeof(clientaddr);
+
     //Infinite loop to accept indefinite number of requests
     for(;;) {
     
         //accept
-        if ((cfd = accept(s, NULL, 0)) < 0) //don't care who connects to us; returns client file descriptor
+        if ((cfd = accept(s, (struct sockaddr *) &clientaddr, (socklen_t *) &clientaddr_size)) < 0) //don't care who connects to us; returns client file descriptor
             err_exit(argv[0]);
         
+
         //int pid = 0;
         //if (pid = fork() == 0) { //child process to handle request
                 
             //close(s); //close server listening socket -> will only handle current request and exit    
         
 
-        process_request(cfd);   
+        process_request(cfd, argv[1], clientaddr);   
 
         //close request
         //if (close(cfd) < 0)
