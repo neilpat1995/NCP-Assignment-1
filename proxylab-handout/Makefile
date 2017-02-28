@@ -2,9 +2,9 @@
 # The executable must be named proxy
 
 CC = gcc
-PFLAGS = -pthread
-CFLAGS = -Wall -g $(PFLAGS) 
-#LDFLAGS = -lpthread
+#PFLAGS = -pthread
+CFLAGS = -Wall -g 
+LDFLAGS = -pthread
 
 OBJS = proxy.o csapp.o
 

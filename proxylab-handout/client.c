@@ -1,9 +1,3 @@
-/*
-Write a separate client that takes as input a URL and prints out the web server response for that URL
-as well as the size of the response in bytes.
-
-*/
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -124,7 +118,7 @@ int main(int argc, char* argv[]) {
     		break;
     	}
     	domain_buf[index] = url[index];
-    }
+    } 
 
     char* domain = &domain_buf[7];	//truncate "http://" from domain
 
@@ -143,19 +137,23 @@ int main(int argc, char* argv[]) {
     	}
 
     	if (index < (strlen(url) - 1)) {	//page on server is specified
-    		int page_offset = index;
+    		index = (found_colon == 1)? index + 1: index; //skip delimiter if port was specified
+            int page_offset = index;
     		for (index; index < strlen(url); index++) {
     			page_buf[(index - page_offset)] = url[index];
     		}
     	}
     }
 
+    page = (char*) malloc(sizeof(page_buf) + 1);
+    bzero(page, sizeof(page_buf) + 1);
+    strcpy(page, "/");
+
     port = (port_buf[0] == '\0')? "80": port_buf;
-    page = (page_buf[0] == '\0')? "/": page_buf;
+    page = (page_buf[0] == '\0')? page: strcat(page, page_buf);
 
     printf("port is now: %s\n", port);
     printf("page is now: %s\n", page);
-
 
     
     int clientfd = 0;
@@ -172,8 +170,7 @@ int main(int argc, char* argv[]) {
     strcat(request, page);
     strcat(request, http_version);
 
-    //NEED TO ADD "/" AT BEGINNING OF REQUEST URL FOR NON-INDEX PAGES!
-    printf("request is: %s\n", request);
+    //printf("request is: %s\n", request);
 
     //Send request
     int write_resp = 0;
@@ -204,8 +201,11 @@ int main(int argc, char* argv[]) {
     
     resp_buf[offset] = '\0';
 
-    printf("response is: %s\n", resp_buf);
-    printf("response size is: %d\n", strlen(resp_buf));
+    printf("Server response: %s\n", resp_buf);
+    printf("Response size (bytes): %d\n", strlen(resp_buf));
+
+
+
 
     /*
 
@@ -269,19 +269,6 @@ int main(int argc, char* argv[]) {
 
 
     */
-
-
-    printf("Returned from connect!\n");
-
-    /*char read_buf[10000];
-    int read_len = 0;
-    if ((read_len = read(client_socket, read_buf, sizeof(read_buf))) == -1) {
-        err_exit();
-    }
-
-    read_buf[read_len] = '\0';
-
-    printf("Server response: %s\n", read_buf);*/
 
     return 0;
 }
