@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 
     char* domain = &domain_buf[7];	//truncate "http://" from domain
 
-    printf("domain is now: %s\n", domain);
+    //printf("domain is now: %s\n", domain);
 
     if (index < (strlen(url) - 1)) {
     	index++;	//skip delimiter
@@ -152,8 +152,8 @@ int main(int argc, char* argv[]) {
     port = (port_buf[0] == '\0')? "80": port_buf;
     page = (page_buf[0] == '\0')? page: strcat(page, page_buf);
 
-    printf("port is now: %s\n", port);
-    printf("page is now: %s\n", page);
+    //printf("port is now: %s\n", port);
+    //printf("page is now: %s\n", page);
 
     
     int clientfd = 0;
@@ -203,9 +203,6 @@ int main(int argc, char* argv[]) {
 
     printf("Server response: %s\n", resp_buf);
     printf("Response size (bytes): %d\n", strlen(resp_buf));
-
-
-
 
     /*
 

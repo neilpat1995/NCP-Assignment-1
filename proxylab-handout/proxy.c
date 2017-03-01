@@ -49,7 +49,16 @@ void err_exit() {
     exit(2);
 }
 
+/*
 
+Processes a request once a client connection is made. This function does the following:
+-Reads the request and ensures it is valid.
+-Parses the request for the URI, then parses the URI for the domain and (optionally) port and page.
+-Forms a request to the server using the above data.
+-Creates a new socket to talk with the server specified by the domain and writes the request to it.
+-Reads the server response and writes it back to the client connection descriptor. 
+
+*/
 void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {  
     //read request
     char reqbuf[10000];
@@ -59,7 +68,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         err_exit();
     }
     reqbuf[reqlen] = '\0';
-    printf("Request read is: %s\n", reqbuf);
+    printf("Stage 1: Request read is: %s\n", reqbuf);
 
     int req_token_counter = 0;
     char reqbufcpy[strlen(reqbuf)];
@@ -74,23 +83,19 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         req_token_counter++;
     }
 
-    printf("Request token counter = %d\n", req_token_counter);
-
     if (req_token_counter >= 3) {
 
         //Parse URI and IP address from request (second token) and socket address structure
         char* request_uri;
         strtok(reqbuf, " ");
         request_uri = strtok(NULL, " ");
+        char* request_protocol = strtok(NULL, " ");
 
         char* ip_addr = (char*) malloc(INET_ADDRSTRLEN);
         bzero(ip_addr, INET_ADDRSTRLEN);
         if ((ip_addr = inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, INET_ADDRSTRLEN)) == NULL) {
             err_exit();
         }
-
-        printf("Request URI is: %s\n", request_uri);
-        printf("IP address is: %s\n", ip_addr);
 
         free(ip_addr);
 
@@ -100,7 +105,6 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         char entry_buf[1000];
         bzero(entry_buf, sizeof(entry_buf));
         format_log_entry(entry_buf, &cliaddr, request_uri, 0);
-        printf("Log entry is: %s\n", entry_buf);
 
         //Write buffer to "proxy.log" file
         FILE *fp;
@@ -188,12 +192,14 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
 
         //Form request
         const char* http_method = "GET ";
-        const char* http_version = " HTTP/1.0\r\n\r\n";
+        char* http_version = " HTTP/1.0\r\n\r\n";
 
         char request[strlen(http_method) + strlen(page) + strlen(http_version)];
         strcpy(request, http_method);
         strcat(request, page);
         strcat(request, http_version);
+
+        printf("request (about to be sent) is:%s\n", request);
 
         //Send request
         int write_resp = 0;
@@ -245,6 +251,10 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
 
 /* 
  * main - Main routine for the proxy program 
+   
+   This function sets up the proxy server by creating and initializing a socket to listen for client requests 
+   iteratively, calling process_request() to handle each connection and retreive the server response.
+
  */
 int main(int argc, char **argv)
 {
