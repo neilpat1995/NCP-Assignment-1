@@ -11,6 +11,12 @@
 
 #define PROGRAM_NAME "client"
 
+/*
+
+Copied helper functions from csapp.h necessary for code to compile
+
+*/
+
 void err_exit() {
 	perror(PROGRAM_NAME);
 	exit(1);
@@ -78,7 +84,13 @@ int Open_clientfd(char *hostname, int port)
 }
 
 
+/*
 
+main function- This function accepts a URL parameter from the command-line, parses it for data (e.g. domain
+name, port, and page on the server), forms an HTTP request with this data, and creates a socket and writes the
+request to it. It then reads the server response and prints it, along with its size (in bytes).
+
+*/
 int main(int argc, char* argv[]) {
 	/* Check for URL argument */
     if (argc != 2) {

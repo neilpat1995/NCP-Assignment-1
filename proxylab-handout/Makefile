@@ -1,8 +1,9 @@
 #Sample Makefile. You can make changes to this file according to your need
 # The executable must be named proxy
 
+#CHANGE: LDFLAGS changed from -lpthread to -pthread (necessary for the "make" command to execute properly).
+
 CC = gcc
-#PFLAGS = -pthread
 CFLAGS = -Wall -g 
 LDFLAGS = -pthread
 
