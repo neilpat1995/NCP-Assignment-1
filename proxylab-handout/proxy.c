@@ -60,7 +60,8 @@ Processes a request once a client connection is made. This function does the fol
 
 */
 void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {  
-    //read request
+    
+    //Read the client's request.
     char reqbuf[10000];
     bzero(reqbuf, sizeof(reqbuf));
     int reqlen = 0;
@@ -70,6 +71,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
     reqbuf[reqlen] = '\0';
     printf("Stage 1: Request read is: %s\n", reqbuf);
 
+    //Verify that the request has at least an HTTP method, URI, and HTTP protocol version.
     int req_token_counter = 0;
     char reqbufcpy[strlen(reqbuf)];
     bzero(reqbufcpy, sizeof(reqbufcpy));
@@ -85,7 +87,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
 
     if (req_token_counter >= 3) {
 
-        //Parse URI and IP address from request (second token) and socket address structure
+        //Parse URI and protocol version from request, and IP address from socket address structure.
         char* request_uri;
         strtok(reqbuf, " ");
         request_uri = strtok(NULL, " ");
@@ -124,14 +126,15 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         bzero(domain_buf, strlen(url) + 1);
         bzero(port_buf, 6);
         bzero(page_buf, strlen(url) + 1);
-        char* port;
-        char* page;
+        char* port; //holds final port after extra processing
+        char* page; //holds final page after extra processing
 
         int index;
-        int found_colon = 0;    // 0 = no port, 1 = port
+        int found_colon = 0;    //booleans used to track occurrences of characters
         int colon_count = 0;
         int slash_count = 0;
 
+        //First parse the domain name by checking for "/" and ":" characters
         for (index = 0; index < strlen(url); index++) {
             if (url[index] == ':') {    //Increment counts of each special character
                 colon_count++;
@@ -139,24 +142,25 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
             else if (url[index] == '/') {
                 slash_count++;
             }
-            if (colon_count == 2) {     //Check if delimiter is found
+            if (colon_count == 2) {     //Check if delimiter limits are reached-signals end of domain name
                 found_colon = 1;
                 break;
             }
             else if (slash_count == 3) {
                 break;
             }
-            domain_buf[index] = url[index];
+            domain_buf[index] = url[index]; //store current character as part of domain
         } 
 
         char* domain = &domain_buf[7];  //truncate "http://" from domain
 
-        printf("domain is now: %s\n", domain);
+        printf("Domain: %s\n", domain);
 
+        //Now check if port and page are specified, and parse them if so
         if (index < (strlen(url) - 1)) {
             index++;    //skip delimiter
             int offset = index;
-            if (found_colon == 1) { //port specified
+            if (found_colon == 1) { //port specified- need to parse port
                 for (index; index < strlen(url); index++) {
                     if (url[index] == '/') {
                         break;
@@ -174,23 +178,25 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
             }
         }
 
+        //Modify port and page numbers as necessary
         page = (char*) malloc(sizeof(page_buf) + 1);
         bzero(page, sizeof(page_buf) + 1);
-        strcpy(page, "/");
+        strcpy(page, "/");  //all pages begin with "/"
 
-        port = (port_buf[0] == '\0')? "80": port_buf;
-        page = (page_buf[0] == '\0')? page: strcat(page, page_buf);
+        port = (port_buf[0] == '\0')? "80": port_buf;   //set default port if not passed
+        page = (page_buf[0] == '\0')? page: strcat(page, page_buf); //set page buffer
 
-        printf("port is now: %s\n", port);
-        printf("page is now: %s\n\n", page);
+        printf("Port: %s\n", port);
+        printf("Page: %s\n\n", page);
 
         
+        //Create socket to connect with specified server.
         int clientfd = 0;
         if((clientfd = Open_clientfd(domain, atoi(port))) < 0) {
             err_exit();
         }
 
-        //Form request
+        //Form the HTTP request to send to the server.
         const char* http_method = "GET ";
         char* http_version = " HTTP/1.0\r\n\r\n";
 
@@ -199,9 +205,9 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         strcat(request, page);
         strcat(request, http_version);
 
-        printf("request (about to be sent) is:%s\n", request);
+        printf("Request to server:%s\n", request);
 
-        //Send request
+        //Send request to server.
         int write_resp = 0;
         if ((write_resp = write(clientfd, request, sizeof(request))) <= 0) {
             if (write_resp == 0) {
@@ -212,7 +218,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
             }
         }
 
-        //Read response
+        //Read response from server.
         char resp_buf[100000];
         int offset = 0;
         int read_res = 0;
@@ -233,6 +239,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
         //printf("Server response: %s\n", resp_buf);
         //printf("Response size (bytes): %d\n", strlen(resp_buf));
 
+        //Write response to original socket for the browser to view.
         int browser_resp = 0;
 
         if((browser_resp = write(cfd, resp_buf, strlen(resp_buf))) <= 0) {
@@ -243,10 +250,7 @@ void process_request(int cfd, char* proxy_port, struct sockaddr_in cliaddr) {
                 err_exit();
             }
         }
-
     }
-
-    
 }
 
 /* 
