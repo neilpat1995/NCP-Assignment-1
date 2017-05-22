@@ -1,6 +1,8 @@
 # NCP-Assignment-1: C-Based Web Proxy Server
 This project is a simple implementation of a web proxy server that accepts client requests, parses them, forms a new request to the end server with this parsed information, and forwards the end server response back to the client.
 
+This proxy handles requests iteratively (i.e. one at a time); if multiple requests are made simulataneously, one is immediately handled, while the others block until the proxy completes serving the request and waits for another connection.
+
 The project can be run as follows:
 1. Clone the repository: `git clone https://github.com/neilpat1995/NCP-Assignment-1.git`
 2. Change directories to the project directory: `cd NCP-Assignment-1/proxylab-handout`
